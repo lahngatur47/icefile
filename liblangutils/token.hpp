@@ -1,23 +1,26 @@
 #pragma once
+#include <cstddef>
+#include <string>
+#include <cassert>
+#include <map>
+using namespace std;
 
-namespace ice::langutils
-{
-    #define TOKEN(T, K) \
+#define TOKEN_LIST(T, K) \
     /* EOF INDICATOR*/ \
-    T( EOS, "EOS", 0)\
+    T(EOS, "EOS", 0)\
      /* punctuator */ \
-    T( L_parent, "(", 0)\
-    T( R_parent, ")", 0)\
-    T( L_bracket, "[",0 )\
-    T( R_bracket, "]", 0)\
-    T( L_brace, "{", 0)\
-    T( R_brace, "}", 0)\
-    T( semicolon, ";",0)\
-    T( period, ".", 0)\
-    T( conditional, "?", 3)\
-    T( R_arrow, "->",0 )\
+    T(L_parent, "(", 0)\
+    T(R_parent, ")", 0)\
+    T(L_bracket, "[",0 )\
+    T(R_bracket, "]", 0)\
+    T(L_brace, "{", 0)\
+    T(R_brace, "}", 0)\
+    T(semicolon, ";",0)\
+    T(period, ".", 0)\
+    T(conditional, "?", 3)\
+    T(R_arrow, "->",0 )\
      /* ASSIGNMENT OP */ \
-    T( assign, "=", 2)\
+    T(assign, "=", 2)\
      /* another op */ \
     T(assign_bit_or , "|=", 2)\
     T(assign_bit_xor , "^=", 2)\
@@ -28,10 +31,11 @@ namespace ice::langutils
     T(assign_sub , "-=", 2)\
     T(assign_mul , "*=", 2)\
     T(assign_div , "/=", 2)\
+    T(assign_mod , "%=", 2)\
      /* binary op */ \
     T(comma , ",", 1)\
-    T(Or , "||", 4)\
-    T(And , "&&", 5)\
+    T(or_ , "||", 4)\
+    T(and_ , "&&", 5)\
     T(bit_or , "|", 8)\
     T(bit_xor , "^", 9)\
     T(bit_and , "&", 10)\
@@ -130,5 +134,101 @@ namespace ice::langutils
      /* user def0ine */ \
     K(class_ , nullptr,0 )\
     T(error_ , nullptr, 0)\
-    K(whitespace , nullptr,0 )\
+    K(whitespace , nullptr,0 )
+
+
+namespace ice::langutils
+{
+
+    enum class token: unsigned int{
+    #define T(name, str, precedence) name,
+        TOKEN_LIST(T, T)
+        token_size
+        #undef T
+    };
+
+    constexpr size_t count(){
+        return static_cast<size_t>(token::token_size);
+    }
+    bool is_keyword(token tok){
+        return (token::as_ <= tok && tok <= token::false_) || (token::auto_ <= tok && tok <= token::class_);
+    }
+    bool is_data_type(token tok){
+        return token::short_ <= tok && tok <= token::string_;
+    }
+    bool is_assignment_op(token tok){
+        return token::assign <= tok && tok <= token::assign_mod;
+    }
+    bool is_binary_op(token tok){
+        return token::comma <= tok && tok <= token::mod;
+    }
+
+    bool is_commutative_op(token tok){
+        return tok == token::bit_or || tok == token::bit_xor || tok == token::bit_and || tok == token:: add || tok == token::mul || tok == token::equal || tok == token::not_equal;
+    }
+    bool is_compare_op(token tok){
+        return token::equal <= tok && tok <= token::greater_than_or_equal;
+    }
+    bool is_bit_op(token tok){
+        return (token::bit_or <= tok && tok <= token::bit_and) || tok == token::bit_not;
+    }
+    bool is_bool_op(token tok){
+        return (token::or_ <= tok && tok <= token::and_) || tok == token::not_;
+    }
+    bool is_unary_op(token tok){
+        return (token::not_ <= tok && tok <= token::delete_) || tok == token::sub;
+    }
+    bool is_count_op(token tok){
+        return tok == token::inc || tok == token::dec;
+    }
+    bool is_shift_op(token tok){
+        return tok == token::sar || tok == token::shl;
+    }
+    bool is_visibility_var_op(token tok){
+        return tok == token::private_ || tok == token::public_;
+    }
+
+    const char* to_string(token tok){
+        #define T(name, str, prec) case token::name : return str;
+        switch (tok)
+        {
+            TOKEN_LIST(T, T)
+        default:
+            return "";
+        }
+    }
+
+    constexpr int precedence(token tok){
+        uint8_t constexpr prec[count()] = {
+            #define T(name, str, pre) pre,
+            TOKEN_LIST(T,T)
+            #undef T
+        };
+        return prec[static_cast<size_t>(tok)];
+    }
+    const char* name(token tok){
+        #define T(name, str, pre) #name,
+        static const char* const names[count()] = { TOKEN_LIST(T,T)};
+        #undef T
+        assert(static_cast<size_t>(tok) < count());
+        return names[static_cast<size_t>(tok)];
+    }
+    string friendly_name(token tok){
+        const char *name__ = to_string(tok);
+        if(name__){
+            return string(name__);
+        }
+        name__ = name(tok);
+        assert(name__ != nullptr);
+        return string(name__);
+    }
+    static token keyword_by_name(string &name){
+        #define K(name, str, pre) {str, token::name},
+        #define T(name, str, pre)
+        map<string, token> key({TOKEN_LIST(T,K)});
+        #undef K
+        #undef T
+        auto it = key.find(name);
+        return it == key.end() ? token::identifier_literal : it->second;
+    }
 } // namespace ice::t0oken
