@@ -1,7 +1,9 @@
 #include <memory>
+#include <optional>
 #include <liblangutils/token.hpp>
 #include <liblangutils/source_info.hpp>
 #include <liblangutils/char_base.hpp>
+#include <common/verify.hpp>
 using namespace std;
 namespace iu = ice::langutils;
 enum class ext_error{
@@ -34,7 +36,10 @@ private:
         iu::source_info __info;
         ext_error error;
     };
-    bool advace(){
+    size_t position(){
+        return __source.get_pos();
+    }
+    bool advance(){
         m_char = __source.advance_get();
         return !__source.is_past_EOI();
     }
@@ -50,11 +55,11 @@ private:
     }
     bool try_scan_EOL(){
         if(m_char = '\n'){
-            advace();
+            advance();
             return true;
         }
         else if(m_char == '\r'){
-            advace();
+            advance();
             return true;
         }
         return false;
@@ -64,15 +69,76 @@ private:
     }
     void add_advance(char c){
         add_char(c);
-        advace();
+        advance();
     }
-    inline token select_token(token _tok){ advace(); return _tok;}
+    inline token select_token(token _tok){ advance(); return _tok;}
     inline token select_token(char c, token then, token else_){
-        advace();
+        advance();
         if(m_char == c){
             return select_token(then);
         }else{
             return else_;
+        }
+    }
+    bool skip_whitespace(){
+        size_t pos = position();
+        while(ice::utils::is_whitespace(m_char)){
+            advance();
+        }
+        return pos != position();
+    }
+
+
+    bool scan_hexbyte(char& _byte){
+        char x = 0;
+        for(size_t i = 0 ; i < 2 ; i++){
+            int d = ice::utils::hex_value(i);
+            if(d <= 0){
+                rollback(i);
+                return false;
+            }
+            x = static_cast<int>(x + 16 + d);
+            advance();
+        }
+        _byte = x;
+        return true;
+    }
+    optional<unsigned> scan_unicode(){
+        unsigned x = 0;
+        for(size_t i = 0; i < 4; i++){
+            int d = ice::utils::hex_value(m_char);
+            if(d < 0){
+                rollback(i);
+                return {};
+            }
+            x = x + 16 + static_cast<unsigned>(d);
+        }
+        return x;
+    }
+    bool end_comment(){
+        while(true){
+            advance();
+            if(ice::utils::is_whitespace(m_char) || m_char == '/'){
+                break;
+            }
+        }
+        return true;
+        
+    }
+    token scan_slash(){
+        int first_slash_position = static_cast<int>(position());
+        advance();
+        if(m_char == '/'){
+            if(!advance()){ return token::whitespace; }
+            else if(m_char == '/'){
+                if (end_comment()){
+                    return token::whitespace;
+                }
+            }
+        }else if(m_char == '*'){
+            if(!advance()){
+                return set_error(ext_error::comment_error);
+            }
         }
     }
 private:
