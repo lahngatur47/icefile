@@ -1,6 +1,6 @@
 #include <memory>
 #include <liblangutils/char_base.hpp>
-
+#include <liblangutils/token.hpp>
 namespace iu = ice::utils;
 #ifdef UNICODE_SUPPORT
 	#if ICE_VERSION == 1008L
@@ -118,52 +118,74 @@ private:
 					}
 				}
 				case '>':{
-					
+					advance();
+					if(char_buffer == '>'){
+                        now_token = select_token('=', iu::token::assign_sar, iu::token::sar);
+					}else if(char_buffer == '='){
+                        now_token = select_token(iu::token::greater_than_or_equal);
+					}else{
+                        now_token = select_token(iu::token::greater_than);
+					}
+
 				}
 				case '&':{
-					
+                    advance();
+                    if(char_buffer == '='){
+                        now_token = select_token(iu::token::assign_bit_and);
+                    }else if(char_buffer == '&'){
+                        now_token = select_token(iu::token::and_);
+                    }else{
+                        now_token = select_token(bit_and);
+                    }
 				}
 				case '|':{
-					
+                    advance();
+                    if(char_buffer == '='){
+                        now_token = select_token(iu::token::assign_bit_or);
+                    }else if(char_buffer = '|'){
+                        now_token = select_token(iu::token::or_);
+                    }else{
+                        now_token = select_token(iu::token::bit_or);
+                    }
 				}
 				case '!':{
-					
+                    now_token = select_token('=', iu::token::not_equal, iu::token::not_);
 				}
 				case '~':{
-					
+                    now_token = select_token(iu::token::bit_not);
 				}
 				case '^':{
-					
+                    now_token = select_token(iu::token::bit_xor);
 				}
 				case '(':{
-					
+                    now_token = select_token(iu::token::L_parent);
 				}
 				case ')':{
-					
+				    now_token = select_token(iu::token::R_parent);
 				}
 				case '[':{
-					
+                    now_token = select_token(iu::token::L_bracket);
 				}
 				case ']':{
-					
+                    now_token = select_token(iu::token::R_bracket);
 				}
 				case '{':{
-					
+                    now_token = select_token(iu::token::L_brace);
 				}
 				case '}':{
-					
+                    now_token = select_token(iu::token::R_brace);
 				}
 				case '.':{
-					
+                    now_token = select_token(iu::token::period);
 				}
 				case ';':{
-					
+                    now_token = select_token(iu::token::semicolon);
 				}
 				case ':':{
-					
+                    now_token = select_token(iu::token::colon);
 				}
 				case '?':{
-					
+                    now_token = select_token(iu::token::conditional);
 				}
 				default:{
 					if(iu::is_identifier_star(char_buffer)){
@@ -173,6 +195,8 @@ private:
 			}
 		}
 	}
+	void scan_string(){}
+
 	token next_and_collect(){
 		scan_keyword_or_token();
 		return __token_now;
