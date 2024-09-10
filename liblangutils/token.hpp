@@ -27,7 +27,7 @@ using namespace std;
     T(assign_bit_and , "&=", 2)\
     T(assign_shl , "<<=", 2)\
     T(assign_sar , ">>=", 2)\
-    T(assign_add , "=+", 2)\
+    T(assign_add , "+=", 2)\
     T(assign_sub , "-=", 2)\
     T(assign_mul , "*=", 2)\
     T(assign_div , "/=", 2)\
@@ -231,4 +231,4 @@ namespace ice::langutils
         auto it = key.find(name);
         return it == key.end() ? token::identifier_literal : it->second;
     }
-} // namespace ice::t0oken
+} // namespace ice::token
