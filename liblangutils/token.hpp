@@ -16,6 +16,7 @@ using namespace std;
     T(L_brace, "{", 0)\
     T(R_brace, "}", 0)\
     T(semicolon, ";",0)\
+    T(colon, ":",0)\
     T(period, ".", 0)\
     T(conditional, "?", 3)\
     T(R_arrow, "->",0 )\
@@ -225,7 +226,7 @@ namespace ice::langutils
     static token keyword_by_name(string &name){
         #define K(name, str, pre) {str, token::name},
         #define T(name, str, pre)
-        map<string, token> key({TOKEN_LIST(T,K)});
+        static map<string, token> const key({TOKEN_LIST(T,K)});
         #undef K
         #undef T
         auto it = key.find(name);

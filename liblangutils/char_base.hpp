@@ -7,6 +7,7 @@ namespace ice::langutils{
 class stream{
 public:
     explicit stream(string &source): full_source(source){}
+    
     bool is_past_EOI(size_t __forward = 0){
         return (pos + __forward) >= full_source.size();
     }
